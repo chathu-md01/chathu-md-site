@@ -1,0 +1,137 @@
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
+
+export default async function handler(req, res) {
+    if (req.method === 'GET') {
+        const url = req.query.url;
+        const format = req.query.format;
+
+        if (!url || !format) {
+            res.status(400).send('Invalid request');
+            return;
+        }
+
+        let options;
+        if (format === '720p') {
+            options = 'bestvideo[height<=720]+bestaudio/best';
+        } else if (format === 'Audio') {
+            options = 'bestaudio/best';
+        } else {
+            res.status(400).send('Invalid format');
+            return;
+        }
+
+        try {
+            const { stdout, stderr } = await execAsync(`yt-dlp -f ${options} --get-url ${url}`);
+            const downloadUrl = stdout.trim();
+            res.redirect(downloadUrl);
+        } catch (error) {
+            console.error(error);
+            res.status(500).send('Error downloading video');
+        }
+    } else if (req.method === 'POST') {
+        res.send(`
+            <html>
+                <head>
+                    <title>CHATHU-MD Downloader</title>
+                    <style>
+                        body {
+                            margin: 0;
+                            padding: 0;
+                            font-family: Arial, sans-serif;
+                            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+                            background-size: 400% 400%;
+                            animation: gradient 15s ease infinite;
+                            height: 100vh;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            flex-direction: column;
+                        }
+
+                        @keyframes gradient {
+                            0% { background-position: 0% 50%; }
+                            50% { background-position: 100% 50%; }
+                            100% { background-position: 0% 50%; }
+                        }
+
+                        .container {
+                            text-align: center;
+                            animation: fadeIn 2s;
+                        }
+
+                        @keyframes fadeIn {
+                            from { opacity: 0; }
+                            to { opacity: 1; }
+                        }
+
+                        h1 {
+                            color: #fff;
+                            margin-bottom: 20px;
+                        }
+
+                        input[type="text"] {
+                            padding: 10px;
+                            border: none;
+                            border-radius: 5px;
+                            width: 300px;
+                            margin-bottom: 20px;
+                        }
+
+                        .buttons {
+                            display: flex;
+                            justify-content: space-between;
+                            width: 300px;
+                        }
+
+                        button {
+                            padding: 10px 20px;
+                            border: none;
+                            border-radius: 5px;
+                            background-color: #fff;
+                            cursor: pointer;
+                            transition: transform 0.2s;
+                        }
+
+                        button:hover {
+                            transform: scale(1.1);
+                        }
+
+                        footer {
+                            position: absolute;
+                            bottom: 10px;
+                            color: #fff;
+                            font-size: 12px;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>CHATHU-MD Downloader</h1>
+                        <input type="text" id="url" placeholder="Paste YouTube link here">
+                        <div class="buttons">
+                            <button onclick="download('720p')">720p</button>
+                            <button onclick="download('Audio')">Audio</button>
+                        </div>
+                    </div>
+                    <footer>&copy; 2026 CHATHU-MD | All Rights Reserved</footer>
+                    <script>
+                        function download(format) {
+                            const url = document.getElementById('url').value;
+                            window.location.href = '/api/download?url=' + url + '&format=' + format;
+                        }
+                    </script>
+                </body>
+            </html>
+        `function download(format) {
+                            const url = document.getElementById('url').value;
+                            window.location.href = '/api/download?url=' + url + '&format=' + format;
+                        }
+                    </script>
+                </body>
+            </html>
+        `);
+    }
+}
